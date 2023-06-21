@@ -6,7 +6,6 @@
  */
 
 #include "dht11.h"
-#include "FreeRTOS.h"
 
 uint8_t DHT11_Reset( void )
 {
@@ -213,4 +212,64 @@ uint8_t DHT11_Read( dht11_t *dht )
 
         return FALSE;
     }
+}
+
+uint8_t DHT11_Compare( dht11_t c, dht11_t p)
+{
+	if( c.g_u8Humidity_Dec != p.g_u8Humidity_Dec ) return FALSE;
+	if( c.g_u8Humidity_Int != p.g_u8Humidity_Int ) return FALSE;
+	if( c.g_u8Temperature_Dec != p.g_u8Temperature_Dec ) return FALSE;
+	if( c.g_u8Temperature_Int != p.g_u8Temperature_Int ) return FALSE;
+
+	return TRUE;
+}
+
+void DHT11_Toa( dht11_t dht, uint8_t * sDATABUFF )
+{
+	uint8_t gDataBuff[16] = "Tran Phuoc Tan  ";
+	uint8_t g_u8Humidity_Int[2], g_u8Humidity_Dec[2];
+	uint8_t g_u8Temperature_Int[2], g_u8Temperature_Dec[2];
+
+	utoa(dht.g_u8Humidity_Int, g_u8Humidity_Int, 10);
+	utoa(dht.g_u8Humidity_Dec, g_u8Humidity_Dec, 10);
+
+	utoa(dht.g_u8Temperature_Int, g_u8Temperature_Int, 10);
+	utoa(dht.g_u8Temperature_Dec, g_u8Temperature_Dec, 10);
+
+	gDataBuff[0] = 'H';
+	gDataBuff[1] = ':';
+
+	gDataBuff[2] = g_u8Humidity_Int[0];
+	gDataBuff[3] = g_u8Humidity_Int[1];
+
+	gDataBuff[4] = '.';
+
+	gDataBuff[5] = g_u8Humidity_Dec[0];
+
+	if( dht.g_u8Humidity_Dec >= 10) gDataBuff[6] = g_u8Humidity_Dec[1];
+	else gDataBuff[6] = '0';
+
+    gDataBuff[7] = ' ';
+    gDataBuff[8] = ' ';
+
+    gDataBuff[9] = 'T';
+    gDataBuff[10] = ':';
+
+    gDataBuff[11] = g_u8Temperature_Int[0];
+    gDataBuff[12] = g_u8Temperature_Int[1];
+
+    gDataBuff[13] = '.';
+
+    gDataBuff[14] = g_u8Temperature_Dec[0];
+
+    if( dht.g_u8Temperature_Dec >= 10 ) gDataBuff[15] = g_u8Temperature_Dec[1];
+    else gDataBuff[15] = '0';
+
+    uint8_t i;
+    for(i = 0; i < 16 ; i++)
+    {
+    	sDATABUFF[i] = gDataBuff[i];
+    }
+
+    printf("sDATABUFF: %s \n", sDATABUFF);
 }

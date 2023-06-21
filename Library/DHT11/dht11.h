@@ -9,6 +9,8 @@
 #define DHT_DHT11_H_
 
 #include <stdio.h>
+#include <stdlib.h>
+
 #include "NUC131.h"
 
 #define DHT11_Pin    	PA0
@@ -31,6 +33,10 @@ typedef struct
 
 uint8_t DHT11_Reset( void );
 uint8_t DHT11_Read( dht11_t *dht );
+
+uint8_t DHT11_Compare( dht11_t c, dht11_t p);
+void DHT11_Toa( dht11_t dht, uint8_t * sDATABUFF );
+
 
 /* *INDENT-OFF* */
 #ifdef __cplusplus

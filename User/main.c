@@ -2,8 +2,8 @@
  * main.c
  * FreeRTOS Kernel V10.4.3
  * Copyright (C) 2020 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
- *  Created on: Jun 15, 2023
- *      Author: OneTon
+ * Created on: Jun 15, 2023
+ * 		Author: OneTon
  */
 
 #include <stdio.h>
@@ -15,8 +15,11 @@
 /* Kernel includes. */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
 
+/* Sensor driver includes. */
 #include "dht11.h"
+#include "lcd12864.h"
 
 static void prvSetupHardware( void );
 void vApplicationMallocFailedHook( void );
@@ -26,6 +29,13 @@ void vApplicationTickHook( void );
 
 /* onTaskCreate */
 static void vtaskDHT11( void *pvParameters );
+static void vtaskLCD12864( void *pvParameters );
+
+/* onQueueHandle */
+QueueHandle_t xQueue;
+
+/* Global variable */
+uint8_t sDATABUFF[16] = "Tran Phuoc Tan  ";
 
 /*---------------------------------------------------------------------------------------------------------*/
 /*  MAIN function                                                                                          */
@@ -38,7 +48,9 @@ int main(void)
     printf("\n\nCPU @ %d Hz\n", SystemCoreClock);
 
     printf("FreeRTOS is creating... \n");
+    xQueue = xQueueCreate( 5, sizeof(dht11_t) );
     xTaskCreate( vtaskDHT11, "DHT11", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL );
+    xTaskCreate( vtaskLCD12864, "LCD", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL );
 
     printf("FreeRTOS is starting... \n\n");
     vTaskStartScheduler();
@@ -51,12 +63,6 @@ static void vtaskDHT11( void *pvParameters )
 {
 	dht11_t dht;
 
-    printf("+--------------------------------------------------+\n");
-    printf("|    Read DHT11 data FreeRTOS Code                 |\n");
-    printf("|    Use GPIO(PA.0) and TIMER0 to read DHT11 data  |\n");
-    printf("|    Please connect PA.0 to DHT11 data pin         |\n");
-    printf("+--------------------------------------------------+\n\n");
-
     for( ;; )
     {
     	portENTER_CRITICAL();
@@ -65,12 +71,45 @@ static void vtaskDHT11( void *pvParameters )
     	 {
     		 printf("Humidity: %d.%d, ", dht.g_u8Humidity_Int, dht.g_u8Humidity_Dec);
     		 printf("Temperature: %d.%d\n", dht.g_u8Temperature_Int, dht.g_u8Temperature_Dec);
+
+    		 if( xQueueSend(xQueue, &dht, 0) != pdPASS )
+    		 {
+    			 printf("No queue space.\n");
+    		 }
+
     	 }
 
     	portEXIT_CRITICAL();
 
-    	vTaskDelay( 1500 );
+    	vTaskDelay( 1500 / portTICK_PERIOD_MS );
     }
+}
+/*-----------------------------------------------------------*/
+
+static void vtaskLCD12864( void *pvParameters )
+{
+	dht11_t c_dht, p_dht;
+
+    for( ;; )
+    {
+    	portENTER_CRITICAL();
+
+    	 if(xQueueReceive(xQueue, &c_dht, 0) == pdPASS)
+    	 {
+    		 if( DHT11_Compare( c_dht, p_dht ) == FALSE )
+    		 {
+    			 p_dht = c_dht;
+        		 DHT11_Toa( c_dht , sDATABUFF );
+        		 LCD12864_Clear_TextMode();
+        		 LCD12864_PrintText(1, sDATABUFF);
+    		 }
+    	 }
+
+    	portEXIT_CRITICAL();
+
+    	vTaskDelay( 1500 / portTICK_PERIOD_MS );
+    }
+
 }
 /*-----------------------------------------------------------*/
 
@@ -87,6 +126,11 @@ static void prvSetupHardware( void )
 
     /* Init UART0 for printf */
     UART0_Init();
+
+    /* Init LCD12864B */
+    LCD12864_Init_GPIO();
+	LCD12864_Init_TextMode();
+	LCD12864_Clear_TextMode();
 }
 /*-----------------------------------------------------------*/
 

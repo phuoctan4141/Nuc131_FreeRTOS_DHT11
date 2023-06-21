@@ -3,7 +3,7 @@
 
 #include "NUC131.h"
 
-#define PLL_CLOCK   72000000
+#define PLL_CLOCK   50000000
 
 extern void SYS_Init( void )
 {
@@ -89,6 +89,16 @@ extern void GPIO_Init( void )
 {
 	GPIO_SetMode(PB, BIT13, GPIO_PMD_OUTPUT);
 	PB13 = 1;
+}
+
+extern void Delay_uS(uint32_t u_second)
+{
+    uint32_t i;
+
+    for (i = 0; i < u_second * 4; i++)
+    {
+        asm("nop");
+    }
 }
 
 extern void Delay_mS(uint32_t m_second)
